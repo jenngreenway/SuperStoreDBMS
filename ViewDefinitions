@@ -1,0 +1,19 @@
+## Customer view of Superstore DB.  Allows them to view order and order details, shipping --including tracking numbers and 
+## information on themselves (order ID and shipping address
+
+CREATE VIEW customer_view AS 
+	SELECT customer.customer_id, customer_name, street_address, city, state, 	postal_code, country, orders.order_id, 
+	order_date, orders.product_id, quant_ordered, discount, orders.tracking, ship_date, ship_mode
+	FROM customer, orders, shipping;
+  
+## People working in distribution a will be able to look up product information and 
+## quantity, available to see if they need to send more. One can be created for each distributor_id  
+
+CREATE VIEW distributor_2155236 AS
+	SELECT product.product_id, product_name, quant_available 
+	FROM product, distributor
+	WHERE distributor.distributor_id = '2155236';
+
+
+
+

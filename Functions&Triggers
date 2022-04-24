@@ -1,0 +1,89 @@
+## 1 Create a function that will take a date as input and return the number of orders placed on that date. 
+
+CREATE OR REPLACE FUNCTION num_orders (order_date DATE)
+	RETURNS INTEGER AS
+    $func$
+		DECLARE
+			order_count INTEGER;
+        BEGIN
+             SELECT COUNT(order_id) INTO order_count
+             FROM orders
+             WHERE orders.order_date = num_orders.order_date;
+			 RETURN order_count;
+        END
+    $func$
+	LANGUAGE plpgsql;
+	
+SELECT num_orders ('2015-10-11');
+SELECT num_orders ('2014-06-09');
+
+## 2--  Create a function that take a customer_id as input and display the um of the total profits made by all orders placed by that customer.
+
+CREATE OR REPLACE FUNCTION profit_by_customer (customer_id VARCHAR(20))
+	RETURNS NUMERIC AS
+    $func$
+		DECLARE
+			 total_profit NUMERIC(8,2);
+        BEGIN
+             SELECT SUM(profit) INTO total_profit
+             FROM orders
+             WHERE orders.customer_id = profit_by_customer.customer_id;
+			 RETURN total_profit;
+        END
+    $func$
+	LANGUAGE plpgsql;
+	
+SELECT profit_by_customer ('CG-12520');
+SELECT profit_by_customer ('BP-11230');
+
+
+## TRIGGER FUNCTION
+
+
+
+CREATE OR REPLACE FUNCTION product_availability()
+
+	RETURNS TRIGGER
+	LANGUAGE plpgsql
+	AS
+	$$
+		DECLARE number_ordered numeric(4);
+		BEGIN
+			SELECT quant_ordered INTO number_ordered
+			FROM orders
+			WHERE order_id = NEW.order_id;
+			
+			UPDATE product
+			SET quant_available = quant_available - number_ordered
+			FROM orders
+			WHERE NEW.order_id = orders.order_id;
+			RETURN NEW;
+		END;
+	$$;
+  
+## TRIGGER 
+
+CREATE TRIGGER update_availability_trigger
+	AFTER INSERT ON shipping
+	FOR EACH ROW
+	WHEN (NEW.tracking IS NOT NULL)
+	EXECUTE PROCEDURE product_availability();
+
+## Testing out the Trigger Function:
+
+SELECT quant_available
+FROM product
+WHERE product_id ='FUR-BO-10001798';
+-- = 115
+
+INSERT INTO orders (order_id, customer_id, order_date, product_id, quant_ordered, discount, profit, website)
+VALUES ('NY-2022-225225', 'CG-12520', '2022-04-01', 'FUR-BO-10001798', 5, 0, 200.00, 'eBay');
+
+INSERT INTO shipping (tracking, order_id, employee_id)
+VALUES (52525252, 'NY-2022-225225', 'RM2125');
+
+SELECT quant_available
+FROM product
+WHERE product_id ='FUR-BO-10001798';
+-- = 110
+

@@ -1,0 +1,85 @@
+## Stored Procedure:  This procedure will insert tuples into the customer_service table when a customer call is recorded.  
+
+CREATE OR REPLACE PROCEDURE add_cust_service ("call_id" VARCHAR(20), "customer_id" VARCHAR(20), "employee_id" VARCHAR(20), "cust_rating" NUMERIC(3))
+	LANGUAGE plpgsql
+	AS
+	$$
+		BEGIN
+			 INSERT INTO customer_service
+			 VALUES ("call_id", "customer_id", "employee_id", "cust_rating");
+		END;
+	$$;	
+
+##Customer_id and employee_id are both foreign keys on this table, so data from the actual data set are used.  The call_id is manufactured. 
+	
+CALL add_cust_service('99999', 'BP-11230', 'RM2125', 3);
+	
+DELETE from customer_service WHERE call_id='121212'
+
+SELECT *
+FROM customer_service
+WHERE customer_id='BP-11230';
+
+##QUERIES
+
+##1-- Assuming that 1 is the lowest (worst) and 5 is the best, determine the average customer rating for each employee and display the name and ID of each employee.
+
+SELECT
+	AVG(cust_rating), employee.employee_id, employee_name	
+FROM 	employee INNER JOIN customer_service 
+	ON employee.employee_id = customer_service.employee_id
+GROUP BY employee.employee_id;
+
+##2-- Determine the total profit of all orders in 2015 for each website.  
+
+SELECT SUM(profit), website
+FROM orders 
+WHERE order_date BETWEEN '2015-01-01' AND '2015-12-31'
+GROUP BY website;
+
+##3-- Determine which customer placed the order with he highest total sales (where total sales = price * quantity)
+
+SELECT price * quant_ordered AS total_sales, customer_id, order_id
+FROM orders JOIN product
+	ON orders.product_id = product.product_id
+ORDER BY total_sales DESC;
+
+##4-- Determine the number of orders for each distributor for all orders and order by highest to lowest count.
+
+SELECT COUNT(order_id), distributor_id
+FROM orders INNER JOIN product
+	ON orders.product_id = product.product_id
+GROUP BY distributor_id
+ORDER BY count DESC;	
+
+##5-- Determine which segment produces the highest profit
+
+SELECT SUM(profit), segment
+FROM customer JOIN orders 
+	ON customer.customer_id = orders.customer_id
+GROUP BY segment;
+
+##6-- Find the total number of customers who have had customer service phone calls from the employee_id RM2125 (Richie Morris)
+
+SELECT COUNT (DISTINCT customer_id)
+FROM customer_service
+WHERE (call_id, customer_id, employee_id, cust_rating) IN
+		(SELECT call_id, customer_id, employee_id, cust_rating
+		FROM customer_service
+		WHERE customer_service.employee_id = 'RM2125');
+
+##7-- Find the name and id of all customers who have ordered product_id 'OFF-SU-10001218'.
+
+SELECT customer_id, customer_name
+FROM customer
+WHERE EXISTS (SELECT product_id
+			 FROM orders
+			 WHERE orders.product_id = 'OFF-SU-10001218');
+
+##8-- Find the name of each category along with the number of products in each category. 
+
+SELECT DISTINCT category,
+		(SELECT COUNT(*)
+		FROM product
+		AS num_products)
+FROM product;	
